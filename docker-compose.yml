@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: festpass-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: festpass
+      POSTGRES_USER: festpass
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U festpass -d festpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    image: fest-backend:0.2
+    container_name: festpass-backend
+    restart: unless-stopped
+    environment:
+      REGNO: ${REGNO}
+      APP_VERSION: ${APP_VERSION}
+      DB_HOST: db
+      DB_NAME: festpass
+      DB_USER: festpass
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: 5432
+    ports:
+      - "101:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - frontend-backend
+      - backend-db
+
+  frontend:
+    build:
+      context: ./frontend
+    image: festpass-frontend:1.0
+    container_name: festpass-frontend
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+    networks:
+      - frontend-backend
+
+volumes:
+  postgres_data:
+
+networks:
+  frontend-backend:
+    driver: bridge
+  backend-db:
+    driver: bridge
+    internal: true

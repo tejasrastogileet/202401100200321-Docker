@@ -1,0 +1,6 @@
+cat > backend/.dockerignore <<'EOF'
+__pycache__
+*.pyc
+.env
+.git
+EOF
